@@ -8,13 +8,19 @@ from flask import Flask, render_template, session
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+from flask_socketio import SocketIO
 
 # Import configuration
 from config import get_config
-# Import extensions
-from extensions import db, migrate, socketio
 # Import models
 import models
+
+# Initialize extensions
+db = SQLAlchemy()
+migrate = Migrate()
+socketio = SocketIO()
 
 # Configure logging
 logging.basicConfig(

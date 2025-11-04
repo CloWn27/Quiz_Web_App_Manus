@@ -39,7 +39,7 @@ pytest-cov==4.1.0
 
 # Production server
 gunicorn==23.0.0
-gevent-websocket==0.10.1
+eventlet==0.36.1
 
 # QR Code generation
 qrcode==7.4.2

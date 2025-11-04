@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="py-8">
+    <!-- Welcome Header -->
+    <div class="mb-8">
+        <h1 class="text-5xl font-black glow-text mb-2">
+            {% if lang == 'de' %}Willkommen zurück, {{ user.username }}!{% else %}Welcome back, {{ user.username }}!{% endif %}
+        </h1>
+        <p class="text-xl text-cyan-300">
+            {% if lang == 'de' %}Bereit für die nächste Challenge?{% else %}Ready for the next challenge?{% endif %}
+        </p>
+    </div>
+    
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="cyber-card p-6 rounded-lg neon-border">
+            <div class="text-4xl mb-2">🏆</div>
+            <p class="text-cyan-400 text-sm uppercase">FiSi-Punkte</p>
+            <p class="text-3xl font-bold glow-text">{{ stats.fisi_punkte }}</p>
+        </div>
+        
+        <div class="cyber-card p-6 rounded-lg neon-border">
+            <div class="text-4xl mb-2">🎮</div>
+            <p class="text-cyan-400 text-sm uppercase">
+                {% if lang == 'de' %}Spiele{% else %}Games{% endif %}
+            </p>
+            <p class="text-3xl font-bold glow-text">{{ stats.games_played }}</p>
+        </div>
+        
+        <div class="cyber-card p-6 rounded-lg neon-border">
+            <div class="text-4xl mb-2">🎯</div>
+            <p class="text-cyan-400 text-sm uppercase">
+                {% if lang == 'de' %}Genauigkeit{% else %}Accuracy{% endif %}
+            </p>
+            <p class="text-3xl font-bold glow-green">{{ stats.accuracy }}%</p>
+        </div>
+        
+        <div class="cyber-card p-6 rounded-lg neon-border">
+            <div class="text-4xl mb-2">🔥</div>
+            <p class="text-cyan-400 text-sm uppercase">
+                {% if lang == 'de' %}Beste Serie{% else %}Best Streak{% endif %}
+            </p>
+            <p class="text-3xl font-bold glow-pink">{{ stats.best_streak }}</p>
+        </div>
+    </div>
+    
+    <!-- Main Actions -->
+    <div class="grid md:grid-cols-3 gap-6 mb-8">
+        <!-- Solo Training -->
+        <div class="cyber-card p-8 rounded-lg hover:scale-105 transition-transform">
+            <div class="text-6xl mb-4 text-center">🎯</div>
+            <h3 class="text-2xl font-bold mb-4 text-center glow-text">
+                {% if lang == 'de' %}Solo-Training{% else %}Solo Training{% endif %}
+            </h3>
+            <p class="text-cyan-300 mb-6 text-center">
+                {% if lang == 'de' %}
+                    Übe alleine ohne Zeitdruck und verbessere dein Wissen
+                {% else %}
+                    Practice alone without time pressure and improve your knowledge
+                {% endif %}
+            </p>
+            <a href="{{ url_for('game.solo') }}" class="cyber-btn cyber-btn-green w-full text-center block">
+                {% if lang == 'de' %}Starten{% else %}Start{% endif %}
+            </a>
+        </div>
+        
+        <!-- Join Game -->
+        <div class="cyber-card p-8 rounded-lg hover:scale-105 transition-transform">
+            <div class="text-6xl mb-4 text-center">🚀</div>
+            <h3 class="text-2xl font-bold mb-4 text-center glow-text">
+                {% if lang == 'de' %}Spiel beitreten{% else %}Join Game{% endif %}
+            </h3>
+            <p class="text-cyan-300 mb-6 text-center">
+                {% if lang == 'de' %}
+                    Tritt einem laufenden Spiel mit einem Raum-Code bei
+                {% else %}
+                    Join a running game with a room code
+                {% endif %}
+            </p>
+            <a href="{{ url_for('game.join') }}" class="cyber-btn w-full text-center block">
+                {% if lang == 'de' %}Beitreten{% else %}Join{% endif %}
+            </a>
+        </div>
+        
+        <!-- Create Game -->
+        <div class="cyber-card p-8 rounded-lg hover:scale-105 transition-transform">
+            <div class="text-6xl mb-4 text-center">✨</div>
+            <h3 class="text-2xl font-bold mb-4 text-center glow-pink">
+                {% if lang == 'de' %}Spiel erstellen{% else %}Create Game{% endif %}
+            </h3>
+            <p class="text-cyan-300 mb-6 text-center">
+                {% if lang == 'de' %}
+                    Erstelle ein neues Multiplayer-Spiel als Host
+                {% else %}
+                    Create a new multiplayer game as host
+                {% endif %}
+            </p>
+            <a href="{{ url_for('game.create') }}" class="cyber-btn cyber-btn-pink w-full text-center block">
+                {% if lang == 'de' %}Erstellen{% else %}Create{% endif %}
+            </a>
+        </div>
+    </div>
+    
+    <!-- Two Column Layout -->
+    <div class="grid md:grid-cols-2 gap-6">
+        <!-- Lernfelder -->
+        <div class="cyber-card p-6 rounded-lg">
+            <h3 class="text-2xl font-bold mb-4 glow-text">
+                📚 {% if lang == 'de' %}Lernfelder{% else %}Learning Fields{% endif %}
+            </h3>
+            <div class="space-y-3">
+                {% for lernfeld in lernfelder %}
+                <div class="border-l-4 border-cyan-500 pl-4 py-2 hover:bg-gray-800 transition">
+                    <p class="text-cyan-300 font-semibold">
+                        {{ lernfeld.get_name(lang) }}
+                    </p>
+                    <p class="text-sm text-gray-400">
+                        {% if lang == 'de' %}{{ lernfeld.beschreibung_de }}{% else %}{{ lernfeld.beschreibung_en }}{% endif %}
+                    </p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Recent Achievements -->
+        <div class="cyber-card p-6 rounded-lg">
+            <h3 class="text-2xl font-bold mb-4 glow-text">
+                🏆 {% if lang == 'de' %}Letzte Erfolge{% else %}Recent Achievements{% endif %}
+            </h3>
+            {% if recent_achievements %}
+            <div class="space-y-3">
+                {% for achievement in recent_achievements %}
+                <div class="border-l-4 border-pink-500 pl-4 py-2 hover:bg-gray-800 transition">
+                    <p class="text-pink-400 font-semibold">
+                        {{ achievement.icon }} {{ achievement.get_titel(lang) }}
+                    </p>
+                    <p class="text-sm text-gray-400">
+                        +{{ achievement.points }} {% if lang == 'de' %}Punkte{% else %}Points{% endif %}
+                    </p>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="mt-4">
+                <a href="{{ url_for('main.achievements') }}" class="text-cyan-400 hover:text-cyan-300 underline">
+                    {% if lang == 'de' %}Alle Erfolge anzeigen →{% else %}View all achievements →{% endif %}
+                </a>
+            </div>
+            {% else %}
+            <p class="text-gray-400 text-center py-8">
+                {% if lang == 'de' %}
+                    Noch keine Erfolge freigeschaltet. Spiele dein erstes Spiel!
+                {% else %}
+                    No achievements unlocked yet. Play your first game!
+                {% endif %}
+            </p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Quick Links -->
+    <div class="mt-8 flex flex-wrap gap-4 justify-center">
+        <a href="{{ url_for('profile.avatar') }}" class="cyber-btn">
+            🎨 {% if lang == 'de' %}Avatar anpassen{% else %}Customize Avatar{% endif %}
+        </a>
+        <a href="{{ url_for('main.leaderboard') }}" class="cyber-btn">
+            📊 {% if lang == 'de' %}Bestenliste{% else %}Leaderboard{% endif %}
+        </a>
+        <a href="{{ url_for('profile.stats') }}" class="cyber-btn">
+            📈 {% if lang == 'de' %}Statistiken{% else %}Statistics{% endif %}
+        </a>
+        <a href="{{ url_for('admin.index') }}" class="cyber-btn cyber-btn-pink">
+            ⚙️ {% if lang == 'de' %}Admin-Panel{% else %}Admin Panel{% endif %}
+        </a>
+    </div>
+</div>
+{% endblock %}

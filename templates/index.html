@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}{{ app_name }} - Home{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center">
+    <div class="text-center">
+        <!-- Hero Section -->
+        <div class="mb-12">
+            <h1 class="text-7xl font-black mb-6 glow-text animate-pulse">
+                🌃 FiSi-Quiz
+            </h1>
+            <h2 class="text-4xl font-bold mb-4 glow-pink">
+                CYBERPUNK
+            </h2>
+            <p class="text-xl text-cyan-300 max-w-2xl mx-auto">
+                {% if lang == 'de' %}
+                    Tauche ein in die Neon-beleuchtete Welt des interaktiven Lernens. 
+                    Teste dein Wissen, fordere deine Freunde heraus und werde zum FiSi-Champion!
+                {% else %}
+                    Dive into the neon-lit world of interactive learning.
+                    Test your knowledge, challenge your friends, and become the FiSi champion!
+                {% endif %}
+            </p>
+        </div>
+        
+        <!-- Main Actions -->
+        <div class="flex flex-col md:flex-row gap-6 justify-center items-center mb-12">
+            {% if session.get('user_id') %}
+                <!-- Logged in users -->
+                <a href="{{ url_for('main.dashboard') }}" class="cyber-btn cyber-btn-green">
+                    {% if lang == 'de' %}🎮 Zum Dashboard{% else %}🎮 Go to Dashboard{% endif %}
+                </a>
+                <a href="{{ url_for('game.join') }}" class="cyber-btn">
+                    {% if lang == 'de' %}🚀 Spiel beitreten{% else %}🚀 Join Game{% endif %}
+                </a>
+                <a href="{{ url_for('game.create') }}" class="cyber-btn cyber-btn-pink">
+                    {% if lang == 'de' %}✨ Spiel erstellen{% else %}✨ Create Game{% endif %}
+                </a>
+            {% else %}
+                <!-- Not logged in -->
+                <a href="{{ url_for('auth.login') }}" class="cyber-btn cyber-btn-green">
+                    {% if lang == 'de' %}🔐 Anmelden{% else %}🔐 Login{% endif %}
+                </a>
+                <a href="{{ url_for('auth.register') }}" class="cyber-btn">
+                    {% if lang == 'de' %}📝 Registrieren{% else %}📝 Register{% endif %}
+                </a>
+                
+                <!-- Quick Guest Access -->
+                <div class="cyber-card p-6 rounded-lg">
+                    <p class="text-cyan-300 mb-4">
+                        {% if lang == 'de' %}Oder schnell als Gast starten:{% else %}Or quick start as guest:{% endif %}
+                    </p>
+                    <form action="{{ url_for('auth.guest_login') }}" method="POST" class="flex gap-2">
+                        <input type="text" name="guest_name" placeholder="{% if lang == 'de' %}Dein Name{% else %}Your Name{% endif %}" 
+                               class="px-4 py-2 bg-gray-800 border border-cyan-500 rounded text-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                               required minlength="2">
+                        <button type="submit" class="cyber-btn cyber-btn-pink">
+                            {% if lang == 'de' %}Los!{% else %}Go!{% endif %}
+                        </button>
+                    </form>
+                </div>
+            {% endif %}
+        </div>
+        
+        <!-- Features Grid -->
+        <div class="grid md:grid-cols-3 gap-6 mt-16 max-w-5xl mx-auto">
+            <div class="cyber-card p-6 rounded-lg hover:scale-105 transition-transform">
+                <div class="text-5xl mb-4">🎯</div>
+                <h3 class="text-2xl font-bold mb-2 glow-text">
+                    {% if lang == 'de' %}Multiplayer{% else %}Multiplayer{% endif %}
+                </h3>
+                <p class="text-cyan-300">
+                    {% if lang == 'de' %}
+                        Spiele live gegen deine Klassenkameraden in Echtzeit
+                    {% else %}
+                        Play live against your classmates in real-time
+                    {% endif %}
+                </p>
+            </div>
+            
+            <div class="cyber-card p-6 rounded-lg hover:scale-105 transition-transform">
+                <div class="text-5xl mb-4">💀</div>
+                <h3 class="text-2xl font-bold mb-2 glow-pink">
+                    {% if lang == 'de' %}Survival-Modi{% else %}Survival Modes{% endif %}
+                </h3>
+                <p class="text-cyan-300">
+                    {% if lang == 'de' %}
+                        Normale und Hardcore-Modi für maximale Spannung
+                    {% else %}
+                        Normal and Hardcore modes for maximum excitement
+                    {% endif %}
+                </p>
+            </div>
+            
+            <div class="cyber-card p-6 rounded-lg hover:scale-105 transition-transform">
+                <div class="text-5xl mb-4">🏆</div>
+                <h3 class="text-2xl font-bold mb-2 glow-green">
+                    {% if lang == 'de' %}Achievements{% else %}Achievements{% endif %}
+                </h3>
+                <p class="text-cyan-300">
+                    {% if lang == 'de' %}
+                        Sammle Erfolge und customize deinen Avatar
+                    {% else %}
+                        Collect achievements and customize your avatar
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        
+        <!-- Learning Fields Preview -->
+        <div class="mt-16 cyber-card p-8 rounded-lg max-w-4xl mx-auto">
+            <h3 class="text-3xl font-bold mb-6 glow-text">
+                {% if lang == 'de' %}📚 Lernfelder{% else %}📚 Learning Fields{% endif %}
+            </h3>
+            <div class="grid md:grid-cols-2 gap-4 text-left">
+                <div class="border-l-4 border-cyan-500 pl-4">
+                    <p class="text-cyan-300">
+                        {% if lang == 'de' %}
+                            ✓ Lernfeld 1: Betrieb und sein Umfeld<br>
+                            ✓ Lernfeld 2: Geschäftsprozesse<br>
+                            ✓ Lernfeld 3: Informationsquellen
+                        {% else %}
+                            ✓ Subject 1: Company and Environment<br>
+                            ✓ Subject 2: Business Processes<br>
+                            ✓ Subject 3: Information Sources
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="border-l-4 border-pink-500 pl-4">
+                    <p class="text-cyan-300">
+                        {% if lang == 'de' %}
+                            ✓ Lernfeld 4: Einfache IT-Systeme<br>
+                            ✓ Lernfeld 5: Vernetzte Systeme<br>
+                            ✓ Und viele mehr...
+                        {% else %}
+                            ✓ Subject 4: Simple IT Systems<br>
+                            ✓ Subject 5: Networked Systems<br>
+                            ✓ And many more...
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- CTA -->
+        <div class="mt-12">
+            <p class="text-2xl text-cyan-300 mb-4">
+                {% if lang == 'de' %}
+                    Bereit für die Herausforderung?
+                {% else %}
+                    Ready for the challenge?
+                {% endif %}
+            </p>
+            {% if not session.get('user_id') %}
+                <a href="{{ url_for('auth.register') }}" class="cyber-btn cyber-btn-green text-xl px-12 py-4 inline-block">
+                    {% if lang == 'de' %}Jetzt starten! 🚀{% else %}Start Now! 🚀{% endif %}
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    @keyframes float {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-20px); }
+    }
+    
+    .cyber-card {
+        animation: float 6s ease-in-out infinite;
+    }
+    
+    .cyber-card:nth-child(2) {
+        animation-delay: 1s;
+    }
+    
+    .cyber-card:nth-child(3) {
+        animation-delay: 2s;
+    }
+</style>
+{% endblock %}

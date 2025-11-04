@@ -1,0 +1,306 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'de' %}Spiel{% else %}Game{% endif %} - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="py-8">
+    <div class="max-w-5xl mx-auto">
+        <!-- Game Header -->
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h2 class="text-3xl font-bold glow-text">{{ sitzung.raum_code }}</h2>
+                <p class="text-cyan-400">{{ sitzung.modus.value }}</p>
+            </div>
+            <div class="text-right">
+                <p class="text-cyan-400 text-sm">{% if lang == 'de' %}Dein Score{% else %}Your Score{% endif %}</p>
+                <p id="current-score" class="text-4xl font-bold glow-green">{{ teilnahme.aktueller_punktestand }}</p>
+            </div>
+        </div>
+        
+        <!-- Question Display -->
+        <div id="question-container" class="cyber-card p-8 rounded-lg mb-8" style="display: none;">
+            <div class="mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <span id="question-number" class="text-cyan-400 text-lg"></span>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-pink-400">⏱️</span>
+                        <span id="timer" class="text-3xl font-bold glow-pink">30</span>
+                    </div>
+                </div>
+                <h3 id="question-text" class="text-3xl font-bold text-cyan-300 mb-4"></h3>
+                <p id="question-points" class="text-cyan-400"></p>
+            </div>
+            
+            <!-- Multiple Choice Answers -->
+            <div id="mc-answers" class="grid md:grid-cols-2 gap-4" style="display: none;"></div>
+            
+            <!-- Text Answer -->
+            <div id="text-answer" style="display: none;">
+                <input type="text" id="text-answer-input" 
+                       class="w-full px-6 py-4 bg-gray-800 border-2 border-cyan-500 rounded-lg text-cyan-300 text-xl focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                       placeholder="{% if lang == 'de' %}Deine Antwort...{% else %}Your answer...{% endif %}">
+                <button id="submit-text-answer" class="cyber-btn cyber-btn-green w-full mt-4">
+                    {% if lang == 'de' %}Antwort senden{% else %}Submit Answer{% endif %}
+                </button>
+            </div>
+        </div>
+        
+        <!-- Answer Result -->
+        <div id="result-container" class="cyber-card p-8 rounded-lg text-center" style="display: none;">
+            <div id="result-icon" class="text-8xl mb-4"></div>
+            <h3 id="result-text" class="text-4xl font-bold mb-4"></h3>
+            <p id="result-points" class="text-2xl mb-4"></p>
+            <p id="correct-answer-text" class="text-cyan-400"></p>
+        </div>
+        
+        <!-- Waiting Screen -->
+        <div id="waiting-container" class="cyber-card p-8 rounded-lg text-center">
+            <div class="loading-spinner mx-auto mb-4"></div>
+            <h3 class="text-2xl font-bold text-cyan-300">
+                {% if lang == 'de' %}Warte auf nächste Frage...{% else %}Waiting for next question...{% endif %}
+            </h3>
+        </div>
+        
+        <!-- Game Over -->
+        <div id="gameover-container" class="cyber-card p-8 rounded-lg text-center" style="display: none;">
+            <h2 class="text-5xl font-black glow-text mb-6">
+                {% if lang == 'de' %}🏁 Spiel beendet!{% else %}🏁 Game Over!{% endif %}
+            </h2>
+            <div id="final-results"></div>
+            <a href="{{ url_for('main.dashboard') }}" class="cyber-btn cyber-btn-green mt-8 inline-block">
+                {% if lang == 'de' %}Zurück zum Dashboard{% else %}Back to Dashboard{% endif %}
+            </a>
+        </div>
+        
+        <!-- Leaderboard Sidebar -->
+        <div id="leaderboard" class="cyber-card p-6 rounded-lg mt-8">
+            <h3 class="text-2xl font-bold mb-4 glow-text">
+                📊 {% if lang == 'de' %}Bestenliste{% else %}Leaderboard{% endif %}
+            </h3>
+            <div id="leaderboard-list"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const socket = io();
+    const roomCode = "{{ sitzung.raum_code }}";
+    const userId = {{ session.get('user_id') }};
+    const lang = "{{ lang }}";
+    
+    let currentQuestion = null;
+    let timerInterval = null;
+    let timeElapsed = 0;
+    
+    // Join game room
+    socket.emit('join_game', { room_code: roomCode });
+    
+    // Listen for new question
+    socket.on('new_question', function(data) {
+        console.log('New question:', data);
+        currentQuestion = data;
+        displayQuestion(data);
+        startTimer(data.zeitlimit_sek);
+    });
+    
+    // Listen for answer result
+    socket.on('answer_result', function(data) {
+        console.log('Answer result:', data);
+        displayResult(data);
+        stopTimer();
+    });
+    
+    // Listen for score updates
+    socket.on('score_update', function(data) {
+        console.log('Score update:', data);
+        if (data.user_id === userId) {
+            updateScore(data.score);
+        }
+        updateLeaderboard();
+    });
+    
+    // Listen for game over
+    socket.on('game_over', function(data) {
+        console.log('Game over:', data);
+        displayGameOver(data);
+    });
+    
+    // Listen for achievements
+    socket.on('achievement_unlocked', function(data) {
+        console.log('Achievement unlocked:', data);
+        showAchievementNotification(data.achievement);
+    });
+    
+    function displayQuestion(question) {
+        document.getElementById('waiting-container').style.display = 'none';
+        document.getElementById('result-container').style.display = 'none';
+        document.getElementById('question-container').style.display = 'block';
+        
+        document.getElementById('question-number').textContent = 
+            lang === 'de' ? `Frage ${question.frage_nummer}` : `Question ${question.frage_nummer}`;
+        document.getElementById('question-text').textContent = question.frage_text;
+        document.getElementById('question-points').textContent = 
+            lang === 'de' ? `${question.punkte} Punkte` : `${question.punkte} Points`;
+        
+        timeElapsed = 0;
+        
+        if (question.typ === 'Multiple Choice') {
+            displayMCAnswers(question.antworten);
+        } else {
+            displayTextAnswer();
+        }
+    }
+    
+    function displayMCAnswers(antworten) {
+        document.getElementById('mc-answers').style.display = 'grid';
+        document.getElementById('text-answer').style.display = 'none';
+        
+        const container = document.getElementById('mc-answers');
+        container.innerHTML = '';
+        
+        antworten.forEach(function(antwort) {
+            const btn = document.createElement('button');
+            btn.className = 'cyber-btn p-6 text-left hover:scale-105 transition-transform';
+            btn.textContent = antwort.text;
+            btn.onclick = function() {
+                submitAnswer(antwort.id);
+                disableAllAnswers();
+            };
+            container.appendChild(btn);
+        });
+    }
+    
+    function displayTextAnswer() {
+        document.getElementById('mc-answers').style.display = 'none';
+        document.getElementById('text-answer').style.display = 'block';
+        
+        const input = document.getElementById('text-answer-input');
+        input.value = '';
+        input.focus();
+        
+        document.getElementById('submit-text-answer').onclick = function() {
+            const answer = input.value.trim();
+            if (answer) {
+                submitAnswer(answer);
+                this.disabled = true;
+            }
+        };
+        
+        // Submit on Enter
+        input.onkeypress = function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('submit-text-answer').click();
+            }
+        };
+    }
+    
+    function submitAnswer(answer) {
+        socket.emit('submit_answer', {
+            room_code: roomCode,
+            frage_id: currentQuestion.frage_id,
+            answer: answer,
+            time_elapsed: timeElapsed
+        });
+    }
+    
+    function disableAllAnswers() {
+        const buttons = document.querySelectorAll('#mc-answers button');
+        buttons.forEach(btn => btn.disabled = true);
+    }
+    
+    function displayResult(result) {
+        document.getElementById('question-container').style.display = 'none';
+        document.getElementById('result-container').style.display = 'block';
+        
+        if (result.is_correct) {
+            document.getElementById('result-icon').textContent = '✅';
+            document.getElementById('result-text').textContent = 
+                lang === 'de' ? 'Richtig!' : 'Correct!';
+            document.getElementById('result-text').className = 'text-4xl font-bold mb-4 glow-green';
+            document.getElementById('result-points').textContent = 
+                `+${result.points_earned} ${lang === 'de' ? 'Punkte' : 'Points'}`;
+        } else {
+            document.getElementById('result-icon').textContent = '❌';
+            document.getElementById('result-text').textContent = 
+                lang === 'de' ? 'Falsch!' : 'Wrong!';
+            document.getElementById('result-text').className = 'text-4xl font-bold mb-4 glow-pink';
+            document.getElementById('result-points').textContent = '0 ' + (lang === 'de' ? 'Punkte' : 'Points');
+            
+            if (result.correct_answer) {
+                document.getElementById('correct-answer-text').textContent = 
+                    (lang === 'de' ? 'Richtige Antwort: ' : 'Correct answer: ') + result.correct_answer;
+            }
+        }
+        
+        updateScore(result.total_score);
+        
+        // Hide result after 3 seconds
+        setTimeout(function() {
+            document.getElementById('result-container').style.display = 'none';
+            document.getElementById('waiting-container').style.display = 'block';
+        }, 3000);
+    }
+    
+    function startTimer(seconds) {
+        let remaining = seconds;
+        document.getElementById('timer').textContent = remaining;
+        
+        timerInterval = setInterval(function() {
+            timeElapsed++;
+            remaining--;
+            document.getElementById('timer').textContent = remaining;
+            
+            if (remaining <= 0) {
+                stopTimer();
+                // Auto-submit empty answer
+                submitAnswer(null);
+                disableAllAnswers();
+            }
+        }, 1000);
+    }
+    
+    function stopTimer() {
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+    }
+    
+    function updateScore(score) {
+        document.getElementById('current-score').textContent = score;
+    }
+    
+    function updateLeaderboard() {
+        // TODO: Implement leaderboard updates
+    }
+    
+    function displayGameOver(data) {
+        document.getElementById('question-container').style.display = 'none';
+        document.getElementById('result-container').style.display = 'none';
+        document.getElementById('waiting-container').style.display = 'none';
+        document.getElementById('gameover-container').style.display = 'block';
+        
+        const resultsDiv = document.getElementById('final-results');
+        resultsDiv.innerHTML = '<div class="space-y-4">';
+        
+        data.results.forEach(function(result, index) {
+            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '';
+            resultsDiv.innerHTML += `
+                <div class="border-l-4 border-cyan-500 pl-4 py-3 bg-gray-800 rounded">
+                    <p class="text-cyan-300 font-semibold">${medal} ${result.username}</p>
+                    <p class="text-2xl font-bold glow-text">${result.score} ${lang === 'de' ? 'Punkte' : 'Points'}</p>
+                </div>
+            `;
+        });
+        
+        resultsDiv.innerHTML += '</div>';
+    }
+    
+    function showAchievementNotification(achievement) {
+        // TODO: Implement achievement notification
+        alert(`🏆 ${achievement.titel} (+${achievement.points})`);
+    }
+</script>
+{% endblock %}

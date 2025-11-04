@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}{% if lang == 'de' %}Lobby{% else %}Lobby{% endif %} - {{ app_name }}{% endblock %}
+
+{% block content %}
+<div class="py-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Room Code Display -->
+        <div class="text-center mb-8">
+            <h1 class="text-6xl font-black glow-text mb-4">
+                {{ sitzung.raum_code }}
+            </h1>
+            <p class="text-2xl text-cyan-300">
+                {% if lang == 'de' %}Raum-Code{% else %}Room Code{% endif %}
+            </p>
+            <p class="text-lg text-gray-400 mt-2">
+                {% if lang == 'de' %}Teile diesen Code mit deinen Freunden!{% else %}Share this code with your friends!{% endif %}
+            </p>
+        </div>
+        
+        <!-- Game Info -->
+        <div class="cyber-card p-6 rounded-lg mb-8">
+            <div class="grid md:grid-cols-3 gap-4 text-center">
+                <div>
+                    <p class="text-cyan-400 text-sm uppercase mb-2">
+                        {% if lang == 'de' %}Modus{% else %}Mode{% endif %}
+                    </p>
+                    <p class="text-2xl font-bold glow-text">{{ sitzung.modus.value }}</p>
+                </div>
+                <div>
+                    <p class="text-cyan-400 text-sm uppercase mb-2">
+                        {% if lang == 'de' %}Schwierigkeit{% else %}Difficulty{% endif %}
+                    </p>
+                    <p class="text-2xl font-bold glow-pink">{{ sitzung.schwierigkeit_level.value }}</p>
+                </div>
+                <div>
+                    <p class="text-cyan-400 text-sm uppercase mb-2">
+                        {% if lang == 'de' %}Lernfeld{% else %}Learning Field{% endif %}
+                    </p>
+                    <p class="text-2xl font-bold glow-green">{{ sitzung.lernfeld.get_name(lang) }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Players List -->
+        <div class="cyber-card p-6 rounded-lg mb-8">
+            <h3 class="text-2xl font-bold mb-4 glow-text">
+                👥 {% if lang == 'de' %}Spieler{% else %}Players{% endif %} (<span id="player-count">{{ teilnehmer|length }}</span>)
+            </h3>
+            <div id="players-list" class="grid md:grid-cols-2 gap-4">
+                {% for player in teilnehmer %}
+                <div class="player-card border-l-4 border-cyan-500 pl-4 py-3 bg-gray-800 rounded" data-player-id="{{ player.id }}">
+                    <p class="text-cyan-300 font-semibold">{{ player.username }}</p>
+                    {% if player.id == sitzung.ersteller_id %}
+                    <span class="text-xs text-pink-400">{% if lang == 'de' %}👑 Host{% else %}👑 Host{% endif %}</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- Host Controls -->
+        {% if is_host %}
+        <div class="text-center">
+            <button id="start-game-btn" class="cyber-btn cyber-btn-green text-xl px-12 py-4">
+                {% if lang == 'de' %}🚀 Spiel starten{% else %}🚀 Start Game{% endif %}
+            </button>
+            <p class="text-gray-400 mt-4">
+                {% if lang == 'de' %}
+                    Warte auf weitere Spieler oder starte das Spiel
+                {% else %}
+                    Wait for more players or start the game
+                {% endif %}
+            </p>
+        </div>
+        {% else %}
+        <div class="text-center">
+            <div class="loading-spinner mx-auto"></div>
+            <p class="text-cyan-300 mt-4 text-xl">
+                {% if lang == 'de' %}Warte auf Spielstart...{% else %}Waiting for game to start...{% endif %}
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const socket = io();
+    const roomCode = "{{ sitzung.raum_code }}";
+    const isHost = {{ 'true' if is_host else 'false' }};
+    const lang = "{{ lang }}";
+    
+    // Join the game room
+    socket.emit('join_game', { room_code: roomCode });
+    
+    // Listen for new players joining
+    socket.on('player_joined', function(data) {
+        console.log('Player joined:', data);
+        updatePlayerCount(data.player_count);
+        addPlayerToList(data);
+    });
+    
+    // Listen for players leaving
+    socket.on('player_left', function(data) {
+        console.log('Player left:', data);
+        removePlayerFromList(data.user_id);
+    });
+    
+    // Listen for game start
+    socket.on('game_started', function(data) {
+        console.log('Game started:', data);
+        window.location.href = `/game/play/${roomCode}`;
+    });
+    
+    // Start game button (host only)
+    if (isHost) {
+        document.getElementById('start-game-btn').addEventListener('click', function() {
+            socket.emit('start_game', { room_code: roomCode });
+            this.disabled = true;
+            this.textContent = lang === 'de' ? 'Starte...' : 'Starting...';
+        });
+    }
+    
+    function updatePlayerCount(count) {
+        document.getElementById('player-count').textContent = count;
+    }
+    
+    function addPlayerToList(data) {
+        const playersList = document.getElementById('players-list');
+        const existingPlayer = playersList.querySelector(`[data-player-id="${data.user_id}"]`);
+        
+        if (!existingPlayer) {
+            const playerCard = document.createElement('div');
+            playerCard.className = 'player-card border-l-4 border-cyan-500 pl-4 py-3 bg-gray-800 rounded';
+            playerCard.setAttribute('data-player-id', data.user_id);
+            playerCard.innerHTML = `<p class="text-cyan-300 font-semibold">${data.username}</p>`;
+            playersList.appendChild(playerCard);
+        }
+    }
+    
+    function removePlayerFromList(userId) {
+        const playerCard = document.querySelector(`[data-player-id="${userId}"]`);
+        if (playerCard) {
+            playerCard.remove();
+        }
+    }
+</script>
+{% endblock %}

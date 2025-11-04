@@ -60,11 +60,13 @@ def dashboard():
     lernfelder = Lernfeld.query.all()
     
     # Get recent achievements
+    from models import AchievementStatus
     recent_achievements = (
         db.session.query(Achievement)
-        .join(user.achievements)
-        .filter(user.achievements.any(is_unlocked=True))
-        .order_by(user.achievements.any(Achievement.id))
+        .join(AchievementStatus, Achievement.id == AchievementStatus.achievement_id)
+        .filter(AchievementStatus.user_id == user.id)
+        .filter(AchievementStatus.is_unlocked == True)
+        .order_by(AchievementStatus.unlocked_at.desc())
         .limit(5)
         .all()
     )
